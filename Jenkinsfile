@@ -1,6 +1,6 @@
 def dockerRepo = "ghcr.io/icgc-argo/rdpc-gateway"
 def gitHubRepo = "icgc-argo/rdpc-gateway"
-def chartVersion = "1.1.0"
+def chartVersion = "1.2.0"
 def commit = "UNKNOWN"
 def version = "UNKNOWN"
 def uikitVersion = "UNKNOWN"
@@ -33,14 +33,10 @@ spec:
   - name: docker
     image: docker:18-git
     tty: true
-    volumeMounts:
-    - mountPath: /var/run/docker.sock
-      name: docker-sock
+    env:
+      - name: DOCKER_HOST
+        value: tcp://localhost:2375
   volumes:
-  - name: docker-sock
-    hostPath:
-      path: /var/run/docker.sock
-      type: File
   - name: docker-graph-storage
     emptyDir: {}
 """

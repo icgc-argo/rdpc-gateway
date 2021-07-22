@@ -20,58 +20,79 @@ import { ApolloServer } from 'apollo-server-express';
 import { ApolloGateway, RemoteGraphQLDataSource } from '@apollo/gateway';
 import express, { Request } from 'express';
 import * as dotenv from 'dotenv';
+import { createProxyMiddleware } from 'http-proxy-middleware';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 4000;
 
+const GRAPHQ_GQL_PATH = '/graphql';
+const WORKFLOW_API_URL = process.env.WORKFLOW_API_URL;
+const SONG_SEARCH_URL = process.env.SONG_SEARCH_URL;
+
+// *** Setup Apollo Federation ***
 const gateway = new ApolloGateway({
-    serviceList: [
-        {
-            name: 'workflows',
-            url: process.env.WORKFLOW_SEARCH_URL
-        },
-        {
-            name: 'song-search',
-            url: process.env.SONG_SEARCH_URL
-        },
-        {
-          name: 'workflow-management',
-          url: process.env.WORKFLOW_MANAGEMENT_URL,
-        },
-    ],
-    buildService({ name, url }) {
-        return new RemoteGraphQLDataSource({
-            url,
-            willSendRequest({ request, context }) {
-                request.http.headers.set(
-                    'authorization',
-                    context.authorization
-                );
-            }
-        });
-    }
+  serviceList: [
+    {
+      name: 'workflow-api',
+      url: `${WORKFLOW_API_URL}${GRAPHQ_GQL_PATH}`,
+    },
+    {
+      name: 'song-search',
+      url: `${SONG_SEARCH_URL}${GRAPHQ_GQL_PATH}`,
+    },
+  ],
+  buildService({ name, url }) {
+    return new RemoteGraphQLDataSource({
+      url,
+      willSendRequest({ request, context }) {
+        request.http.headers.set('authorization', context.authorization);
+      },
+    });
+  },
 });
 
 const server = new ApolloServer({
-    gateway,
-    // Disable subscriptions (not currently supported with ApolloGateway)
-    subscriptions: false,
-    context: ({ req }: {req: Request}) => ({
-        authorization: req.headers?.authorization || '',
-    })
+  gateway,
+  // Disable subscriptions (not currently supported with ApolloGateway)
+  subscriptions: false,
+  context: ({ req }: { req: Request }) => ({
+    authorization: req.headers?.authorization || '',
+  }),
 });
 
+// *** Setup Workflow-API proxy ***
+// Workflow-Api graphql is accessed via Apollo, so reject here
+app.use('/workflow-api/graphql', (_, res) => res.status(404).send());
+app.use('/workflow-api/v2/api-docs', async (req, res) => {
+  // api-docs has no knowledge of proxy so it points to actual service which is misleading
+  // since we are proxying through gateway, replace with gateway's host and basePath
+  const apiDoc = await fetch(WORKFLOW_API_URL + '/v2/api-docs').then((res) => res.json());
+  apiDoc.host = `${req.hostname}:${port}`;
+  apiDoc.basePath = '/workflow-api';
+  res.send(apiDoc);
+});
+app.use(
+  '/workflow-api',
+  createProxyMiddleware({
+    target: WORKFLOW_API_URL,
+    xfwd: true,
+    pathRewrite: (path: string, _) => path.replace('/workflow-api', ''),
+    changeOrigin: true,
+  }),
+);
+
+// *** Setup Health Endpoint ***
 app.use('/status', (_, res) => {
-    return res.send({
-        'status': 'RUNNING'
-    });
+  return res.send({
+    status: 'RUNNING',
+  });
 });
 
 server.applyMiddleware({ app });
 
-
 app.listen(port, () =>
-    console.log(`Server ready at http://localhost:${port}${server.graphqlPath}`)
+  console.log(`Server ready at http://localhost:${port}${server.graphqlPath}`),
 );
