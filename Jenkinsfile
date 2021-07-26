@@ -1,9 +1,7 @@
 def dockerRepo = "ghcr.io/icgc-argo/rdpc-gateway"
 def gitHubRepo = "icgc-argo/rdpc-gateway"
-def chartVersion = "1.2.0"
 def commit = "UNKNOWN"
 def version = "UNKNOWN"
-def uikitVersion = "UNKNOWN"
 
 
 pipeline {
@@ -81,7 +79,7 @@ spec:
                 branch "develop"
             }
             steps {
-                build(job: "/provision/helm", parameters: [
+                build(job: "/provision/update-app-version", parameters: [
                      [$class: 'StringParameterValue', name: 'RDPC_ENV', value: 'dev' ],
                      [$class: 'StringParameterValue', name: 'TARGET_RELEASE', value: 'rdpc-gateway'],
                      [$class: 'StringParameterValue', name: 'NEW_APP_VERSION', value: "${commit}" ]
@@ -116,7 +114,7 @@ spec:
                 branch "master"
             }
             steps {
-                build(job: "/provision/helm", parameters: [
+                build(job: "/provision/update-app-version", parameters: [
                      [$class: 'StringParameterValue', name: 'RDPC_ENV', value: 'qa' ],
                      [$class: 'StringParameterValue', name: 'TARGET_RELEASE', value: 'rdpc-gateway'],
                      [$class: 'StringParameterValue', name: 'NEW_APP_VERSION', value: "${version}" ]
