@@ -1,4 +1,4 @@
-@Library(value='jenkins-pipeline-library@jenkins-migration-rdpc-devqa', changelog=false) _
+@Library(value='jenkins-pipeline-library@master', changelog=false) _
 pipelineRDPCRdpcGateway(
     dockerRegistry: "ghcr.io",
     dockerRepo: "icgc-argo/rdpc-gateway",
