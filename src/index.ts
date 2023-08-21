@@ -31,6 +31,7 @@ const port = process.env.PORT || 4000;
 const GRAPHQ_GQL_PATH = '/graphql';
 const WORKFLOW_API_URL = process.env.WORKFLOW_API_URL;
 const SONG_SEARCH_URL = process.env.SONG_SEARCH_URL;
+const ARGO_CLINICAL_URL = process.env.ARGO_CLINICAL_URL;
 
 // *** Setup Apollo Federation ***
 const gateway = new ApolloGateway({
@@ -43,6 +44,10 @@ const gateway = new ApolloGateway({
       name: 'song-search',
       url: `${SONG_SEARCH_URL}${GRAPHQ_GQL_PATH}`,
     },
+    {
+      name: 'argo-clinical',
+      url: `${ARGO_CLINICAL_URL}${GRAPHQ_GQL_PATH}`,
+    },
   ],
   buildService({ name, url }) {
     return new RemoteGraphQLDataSource({
@@ -53,6 +58,9 @@ const gateway = new ApolloGateway({
     });
   },
 });
+
+
+console.log('gateway: ' + gateway.schema);
 
 const server = new ApolloServer({
   gateway,
