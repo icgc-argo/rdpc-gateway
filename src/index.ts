@@ -59,9 +59,6 @@ const gateway = new ApolloGateway({
   },
 });
 
-
-console.log('gateway: ' + gateway.schema);
-
 const server = new ApolloServer({
   gateway,
   // Disable subscriptions (not currently supported with ApolloGateway)
