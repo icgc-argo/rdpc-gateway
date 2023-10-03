@@ -37,7 +37,9 @@
     "express": "^4.17.1",
     "graphql": "^14.1.0",
     "http-proxy-middleware": "^1.0.6",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "url-join": "^5.0.0",
+    "winston": "^3.10.0"
   },
   "prettier": {
     "printWidth": 100,

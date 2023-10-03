@@ -23,6 +23,8 @@ import * as dotenv from 'dotenv';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import fetch from 'node-fetch';
 
+import clinicalProxyRoute from './routes/clinical-proxy';
+
 dotenv.config();
 
 const app = express();
@@ -95,6 +97,9 @@ app.use('/status', (_, res) => {
     status: 'RUNNING',
   });
 });
+
+// Routers
+app.use('/clinical', clinicalProxyRoute);
 
 server.applyMiddleware({ app });
 
