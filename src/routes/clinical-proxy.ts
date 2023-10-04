@@ -18,7 +18,7 @@
  */
 
 import urlJoin from 'url-join';
-import { ARGO_CLINICAL_URL } from '../config';
+import { CLINICAL_API_URL } from '../config';
 import { loggerFor } from '../utils/logger';
 import express from 'express';
 import { Request, Response } from 'express';
@@ -40,7 +40,7 @@ const handleError = (err: Error, req: Request, res: Response) => {
 router.use(
   '/template/all',
   createProxyMiddleware({
-    target: ARGO_CLINICAL_URL,
+    target: CLINICAL_API_URL,
     pathRewrite: (pathName: string, req: Request) => {
       const exclude = req.query.excludeSampleRegistration === 'true';
       return urlJoin('/dictionary/template/all', `?excludeSampleRegistration=${exclude}`);
@@ -61,7 +61,7 @@ router.use(
 router.use(
   '/template/:template',
   createProxyMiddleware({
-    target: ARGO_CLINICAL_URL,
+    target: CLINICAL_API_URL,
     pathRewrite: (pathName: string, req: Request) => {
       // 'all' will retrieve the zip file with all templates excluding sample_registration
       // for specific templates 'templateName'.tsv or 'templateName' will get the tsv from clinical

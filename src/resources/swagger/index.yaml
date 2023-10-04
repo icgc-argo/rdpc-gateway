@@ -20,6 +20,19 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: apollo-require-preflight
+          in: header
+          description: Apollo Server 4 CSRF protection, required for testing
+          required: true
+          schema:
+            type: string
+            default: true
+        - name: Accept
+          in: header
+          required: true
+          schema:
+            type: string
+            default: application/json; charset=utf-8
       responses:
         '200':
           description: 'A zip file with all schema templates'

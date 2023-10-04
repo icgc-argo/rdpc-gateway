@@ -17,4 +17,5 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-export const ARGO_CLINICAL_URL = process?.env?.ARGO_CLINICAL_URL || 'http://localhost:3001';
+export const CLINICAL_GQL_URL = process?.env?.CLINICAL_GQL_URL || 'http://localhost:3001';
+export const CLINICAL_API_URL = process?.env?.CLINICAL_API_URL || 'http://localhost:3002';

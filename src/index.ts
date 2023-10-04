@@ -34,22 +34,22 @@ const port = process.env.PORT || 4000;
 const GRAPHQ_GQL_PATH = '/graphql';
 const WORKFLOW_API_URL = process.env.WORKFLOW_API_URL;
 const SONG_SEARCH_URL = process.env.SONG_SEARCH_URL;
-const ARGO_CLINICAL_URL = process.env.ARGO_CLINICAL_URL;
+const CLINICAL_GQL_URL = process.env.CLINICAL_GQL_URL;
 
 // *** Setup Apollo Federation ***
 const gateway = new ApolloGateway({
   serviceList: [
-    // {
-    //   name: 'workflow-api',
-    //   url: `${WORKFLOW_API_URL}${GRAPHQ_GQL_PATH}`,
-    // },
-    // {
-    //   name: 'song-search',
-    //   url: `${SONG_SEARCH_URL}${GRAPHQ_GQL_PATH}`,
-    // },
+    {
+      name: 'workflow-api',
+      url: `${WORKFLOW_API_URL}${GRAPHQ_GQL_PATH}`,
+    },
+    {
+      name: 'song-search',
+      url: `${SONG_SEARCH_URL}${GRAPHQ_GQL_PATH}`,
+    },
     {
       name: 'argo-clinical',
-      url: `${ARGO_CLINICAL_URL}${GRAPHQ_GQL_PATH}`,
+      url: `${CLINICAL_GQL_URL}${GRAPHQ_GQL_PATH}`,
     },
   ],
   buildService({ name, url }) {
@@ -74,26 +74,26 @@ const server = new ApolloServer({
 // *** Setup Workflow-API proxy ***
 // Workflow-Api graphql is accessed via Apollo, so reject here
 
-// app.use('/workflow-api/graphql', (_, res) => res.status(404).send());
-// app.use('/workflow-api/v2/api-docs', async (req, res) => {
+app.use('/workflow-api/graphql', (_, res) => res.status(404).send());
+app.use('/workflow-api/v2/api-docs', async (req, res) => {
+  // api-docs has no knowledge of proxy so it points to actual service which is misleading
+  // since we are proxying through gateway, replace with gateway's host and basePath
 
-// api-docs has no knowledge of proxy so it points to actual service which is misleading
-// since we are proxying through gateway, replace with gateway's host and basePath
+  const apiDoc = await fetch(WORKFLOW_API_URL + '/v2/api-docs').then((res) => res.json());
+  apiDoc.host = `${req.hostname}:${port}`;
+  apiDoc.basePath = '/workflow-api';
+  res.send(apiDoc);
+});
 
-//   const apiDoc = await fetch(WORKFLOW_API_URL + '/v2/api-docs').then((res) => res.json());
-//   apiDoc.host = `${req.hostname}:${port}`;
-//   apiDoc.basePath = '/workflow-api';
-//   res.send(apiDoc);
-// });
-// app.use(
-//   '/workflow-api',
-//   createProxyMiddleware({
-//     target: WORKFLOW_API_URL,
-//     xfwd: true,
-//     pathRewrite: (path: string, _) => path.replace('/workflow-api', ''),
-//     changeOrigin: true,
-//   }),
-// );
+app.use(
+  '/workflow-api',
+  createProxyMiddleware({
+    target: WORKFLOW_API_URL,
+    xfwd: true,
+    pathRewrite: (path: string, _) => path.replace('/workflow-api', ''),
+    changeOrigin: true,
+  }),
+);
 
 // *** Setup Health Endpoint ***
 app.use('/status', (_, res) => {
@@ -111,5 +111,5 @@ server.applyMiddleware({ app });
 
 app.listen(port, () => {
   console.log(`Server ready at http://localhost:${port}${server.graphqlPath}`);
-  console.log(`🚀 Rest API doc available at http://localhost:${port}/api-docs`);
+  console.log(`🛩 Rest API doc available at http://localhost:${port}/api-docs`);
 });
