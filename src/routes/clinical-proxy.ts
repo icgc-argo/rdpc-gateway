@@ -18,11 +18,13 @@
  */
 
 import urlJoin from 'url-join';
-import { CLINICAL_SERVICE_ROOT } from '../config';
-import logger from '../utils/logger';
+import { ARGO_CLINICAL_URL } from '../config';
+import { loggerFor } from '../utils/logger';
 import express from 'express';
 import { Request, Response } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+
+const logger = loggerFor(__filename);
 
 const router = express.Router();
 // Our specification download service can't use GraphQL because GraphQL specification requires the content-type
@@ -31,14 +33,14 @@ const router = express.Router();
 
 // This is for handling nodejs/system errors (e.g. connection failed)
 const handleError = (err: Error, req: Request, res: Response) => {
-  logger.error('Clinical Router Error - ' + err);
+  logger.error('Clinical Router Error - ', err);
   return res.status(500).send('Internal Server Error');
 };
 
 router.use(
   '/template/all',
   createProxyMiddleware({
-    target: CLINICAL_SERVICE_ROOT,
+    target: ARGO_CLINICAL_URL,
     pathRewrite: (pathName: string, req: Request) => {
       const exclude = req.query.excludeSampleRegistration === 'true';
       return urlJoin('/dictionary/template/all', `?excludeSampleRegistration=${exclude}`);
@@ -59,7 +61,7 @@ router.use(
 router.use(
   '/template/:template',
   createProxyMiddleware({
-    target: CLINICAL_SERVICE_ROOT,
+    target: ARGO_CLINICAL_URL,
     pathRewrite: (pathName: string, req: Request) => {
       // 'all' will retrieve the zip file with all templates excluding sample_registration
       // for specific templates 'templateName'.tsv or 'templateName' will get the tsv from clinical

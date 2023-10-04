@@ -17,26 +17,49 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import { createLogger, transports, format } from 'winston';
+import winston from 'winston';
+const { format } = winston;
+const { combine, timestamp, json, simple } = format;
 
-const { combine, timestamp, printf } = format;
+// read the log level from the env directly since this is a very high priority value.
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+console.log('log level configured: ', LOG_LEVEL);
 
-const isProd = process.env.NODE_ENV === 'production';
-
-export const loggerConfig = {
-	format: combine(
-		timestamp(),
-		printf((info) => `${info.timestamp} ${info.level}: ${info.message}`),
-	),
-	transports: [
-		new transports.Console({
-			handleExceptions: true,
-			level: isProd ? 'error' : 'debug',
-		}),
-		new transports.File({ filename: 'debug.log', level: 'debug' }),
-	],
+// Logger configuration
+const logConfiguration = {
+  level: LOG_LEVEL,
+  format: combine(json(), simple(), timestamp()),
+  transports: [new winston.transports.Console()],
 };
 
-const logger = createLogger(loggerConfig);
+export interface Logger {
+  error(msg: string, err: Error | unknown): void;
+  info(msg: string): void;
+  debug(msg: string): void;
+  profile(s: string): void;
+}
 
-export default logger;
+const winstonLogger = winston.createLogger(logConfiguration);
+if (process.env.LOG_LEVEL == 'debug') {
+  console.log('logger configured: ', winstonLogger);
+}
+export const loggerFor = (fileName: string): Logger => {
+  if (process.env.LOG_LEVEL == 'debug') {
+    console.debug('creating logger for', fileName);
+  }
+  const source = fileName.substring(fileName.indexOf('argo-clinical'));
+  return {
+    error: (msg: string, err: Error): void => {
+      winstonLogger.error(msg, err, { source });
+    },
+    debug: (msg: string): void => {
+      winstonLogger.debug(msg, { source });
+    },
+    info: (msg: string): void => {
+      winstonLogger.info(msg, { source });
+    },
+    profile: (id: string): void => {
+      winstonLogger.profile(id);
+    },
+  };
+};

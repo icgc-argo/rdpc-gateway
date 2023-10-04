@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/icgc-argo/rdpc-gateway#readme",
   "devDependencies": {
+    "@types/url-join": "^4.0.1",
     "dotenv": "^8.2.0",
     "prettier": "^2.0.5",
     "tslint": "^6.1.2",
@@ -38,7 +39,7 @@
     "graphql": "^14.1.0",
     "http-proxy-middleware": "^1.0.6",
     "node-fetch": "^2.6.1",
-    "url-join": "^5.0.0",
+    "url-join": "^4.0.1",
     "winston": "^3.10.0"
   },
   "prettier": {
