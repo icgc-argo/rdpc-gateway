@@ -7,6 +7,31 @@ tags:
     description: Proxies file downloads for Clinical
 
 paths:
+  '/clinical/program/{programId}/all-clinical-data':
+    parameters:
+      - name: programId
+        description: the short name of the program
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - Clinical Proxies
+      security:
+        - bearerAuth: []
+      summary: Download a zip file with tsv files for all clinical data in program
+      description: '- the file name of the zip file is not determined by this endpoint'
+      responses:
+        '200':
+          description: 'A zip file with all program submitted data'
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: Internal server error
   '/clinical/template/all':
     get:
       tags:
@@ -75,3 +100,10 @@ paths:
                 type: string
         '500':
           description: Internal server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

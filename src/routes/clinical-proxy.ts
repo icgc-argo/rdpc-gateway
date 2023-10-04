@@ -38,6 +38,19 @@ const handleError = (err: Error, req: Request, res: Response) => {
 };
 
 router.use(
+  '/program/:programId/all-clinical-data',
+  createProxyMiddleware({
+    target: CLINICAL_API_URL,
+    pathRewrite: (pathName: string, req: Request) => {
+      const programId = req.params.programId;
+      return urlJoin('/clinical/program/', programId, '/tsv-export');
+    },
+    onError: handleError,
+    changeOrigin: true,
+  }),
+);
+
+router.use(
   '/template/all',
   createProxyMiddleware({
     target: CLINICAL_API_URL,
