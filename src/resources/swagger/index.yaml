@@ -1,0 +1,64 @@
+openapi: 3.0.0
+info:
+  title: RDPC Gateway
+  version: 1.0.0
+tags:
+  - name: Clinical Proxies
+    description: Proxies file downloads for Clinical
+
+paths:
+  '/clinical/template/all':
+    get:
+      tags:
+        - Clinical Proxies
+      summary: Download a zip file with templates for all schema, with the option to exclude sample registration.
+      description: '- the file name of the zip file is not determined by this endpoint'
+      parameters:
+        - name: excludeSampleRegistration
+          in: query
+          description: Boolean value for whether to exclude downloading sample registration file. Accepted values are "true" or "false", default to false.
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 'A zip file with all schema templates'
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: Internal server error
+  '/clinical/template/{schema}':
+    parameters:
+      - name: schema
+        description: name of the schema to download the template file for
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - Clinical Proxies
+      summary: Download the template file for a given schema
+      description: |
+        - the file name of tsv file is not determined by this endpoint
+        - this endpoint will accept /{schema} or /{schema}.tsv
+      responses:
+        '200':
+          description: 'A tsv template file for the given schemaName'
+          content:
+            text/tab-separated-values:
+              schema:
+                example: 'program_id\tsubmitter_donor_id\tgender\tsubmitter_specimen_id\tspecimen_type\ttumour_normal_designation\tsubmitter_sample_id\tsample_type'
+                type: string
+        '404':
+          description: The errror message indicating the schema could not be found
+          content:
+            application/json:
+              schema:
+                example: '{"message": "no schema named ''invalidName'' found"}'
+                type: string
+        '500':
+          description: Internal server error
