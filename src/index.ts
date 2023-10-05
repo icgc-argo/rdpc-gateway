@@ -111,5 +111,5 @@ server.applyMiddleware({ app });
 
 app.listen(port, () => {
   console.log(`Server ready at http://localhost:${port}${server.graphqlPath}`);
-  console.log(`🛩 Rest API doc available at http://localhost:${port}/api-docs`);
+  console.log(`🛩  Rest API doc available at http://localhost:${port}/api-docs`);
 });

@@ -4,6 +4,7 @@
   "description": "GraphQL Federated Gateway for RDPC",
   "main": "index.js",
   "scripts": {
+    "dev": "npm run build && npm run start",
     "start": "npm run serve",
     "build": "npm run build-ts && npm run tslint && cp -r ./src/resources ./dist",
     "serve": "node dist/index.js",

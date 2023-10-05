@@ -86,4 +86,17 @@ router.use(
   }),
 );
 
+router.use(
+  '/submission/program/:programId/registration',
+  createProxyMiddleware({
+    target: CLINICAL_API_URL,
+    pathRewrite: (pathName: string, req: Request) => {
+      const programId = req.params.programId;
+      return urlJoin('/submission/program/', programId, '/registration');
+    },
+    onError: handleError,
+    changeOrigin: true,
+  }),
+);
+
 export default router;
