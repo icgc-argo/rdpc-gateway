@@ -4,8 +4,9 @@
   "description": "GraphQL Federated Gateway for RDPC",
   "main": "index.js",
   "scripts": {
+    "dev": "npm run build && npm run start",
     "start": "npm run serve",
-    "build": "npm run build-ts && npm run tslint",
+    "build": "npm run build-ts && npm run tslint && cp -r ./src/resources ./dist",
     "serve": "node dist/index.js",
     "watch-node": "nodemon dist/server.js",
     "tslint": "tslint -c tslint.json -p tsconfig.json",
@@ -25,10 +26,14 @@
   },
   "homepage": "https://github.com/icgc-argo/rdpc-gateway#readme",
   "devDependencies": {
+    "@types/swagger-ui-express": "^4.1.4",
+    "@types/url-join": "^4.0.1",
+    "@types/yamljs": "^0.2.32",
     "dotenv": "^8.2.0",
     "prettier": "^2.0.5",
     "tslint": "^6.1.2",
-    "typescript": "^3.9.2"
+    "typescript": "^3.9.2",
+    "yamljs": "^0.3.0"
   },
   "dependencies": {
     "@apollo/gateway": "^0.16.5",
@@ -37,7 +42,10 @@
     "express": "^4.17.1",
     "graphql": "^14.1.0",
     "http-proxy-middleware": "^1.0.6",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "swagger-ui-express": "^5.0.0",
+    "url-join": "^4.0.1",
+    "winston": "^3.10.0"
   },
   "prettier": {
     "printWidth": 100,

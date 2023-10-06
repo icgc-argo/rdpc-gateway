@@ -1,0 +1,401 @@
+openapi: 3.0.0
+info:
+  title: RDPC Gateway
+  version: 1.0.0
+security:
+  - bearerAuth: ['PROGRAMDATA-${programId}.WRITE', 'CLINICALSERVICE.WRITE']
+tags:
+  - name: Clinical Proxies
+    description: Proxies file downloads for Clinical
+  - name: Sample Registration
+    description: Registering new Donors, Specimens, and Samples
+
+paths:
+  '/clinical/program/{programId}/all-clinical-data':
+    parameters:
+      - name: programId
+        description: the short name of the program
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - Clinical Proxies
+      security:
+        - bearerAuth: []
+      summary: Download a zip file with tsv files for all clinical data in program
+      description: '- the file name of the zip file is not determined by this endpoint'
+      responses:
+        '200':
+          description: 'A zip file with all program submitted data'
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: Internal server error
+  '/clinical/template/all':
+    get:
+      tags:
+        - Clinical Proxies
+      summary: Download a zip file with templates for all schema, with the option to exclude sample registration.
+      description: '- the file name of the zip file is not determined by this endpoint'
+      parameters:
+        - name: excludeSampleRegistration
+          in: query
+          description: Boolean value for whether to exclude downloading sample registration file. Accepted values are "true" or "false", default to false.
+          required: false
+          schema:
+            type: boolean
+        - name: apollo-require-preflight
+          in: header
+          description: Apollo Server 4 CSRF protection, required for testing
+          required: true
+          schema:
+            type: string
+            default: true
+        - name: Accept
+          in: header
+          required: true
+          schema:
+            type: string
+            default: application/json; charset=utf-8
+      responses:
+        '200':
+          description: 'A zip file with all schema templates'
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: Internal server error
+  '/clinical/template/{schema}':
+    parameters:
+      - name: schema
+        description: name of the schema to download the template file for
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - Clinical Proxies
+      summary: Download the template file for a given schema
+      description: |
+        - the file name of tsv file is not determined by this endpoint
+        - this endpoint will accept /{schema} or /{schema}.tsv
+      responses:
+        '200':
+          description: 'A tsv template file for the given schemaName'
+          content:
+            text/tab-separated-values:
+              schema:
+                example: 'program_id\tsubmitter_donor_id\tgender\tsubmitter_specimen_id\tspecimen_type\ttumour_normal_designation\tsubmitter_sample_id\tsample_type'
+                type: string
+        '404':
+          description: The errror message indicating the schema could not be found
+          content:
+            application/json:
+              schema:
+                example: '{"message": "no schema named ''invalidName'' found"}'
+                type: string
+        '500':
+          description: Internal server error
+
+  '/clinical/submission/program/{programId}/registration':
+    parameters:
+      - $ref: '#/components/parameters/PathProgramId'
+    post:
+      tags:
+        - Sample Registration
+      summary: Upload registration file
+      description: This will validate and save the new registration file overwriting any existing registration
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                registrationFile:
+                  type: string
+                  format: binary
+        description: the tsv registration file
+        required: true
+      responses:
+        '400':
+          $ref: '#/components/responses/FileStructureError'
+        '422':
+          description: 'invalid registration file'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  successful:
+                    type: boolean
+                    description: will be false in this case
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RegistrationValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '201':
+          description: 'the file is valid and registration was created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateRegistration'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PathProgramId:
+      name: programId
+      description: Short Name of the program (ex. ABCD-EF)
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    ServiceUnavailableError:
+      description: Endpoint service unavailable
+    UnauthorizedError:
+      description: Access token is missing or invalid
+    ServerError:
+      description: Server error
+    ForbiddenError:
+      description: Access token has incorrect scopes
+    NotFoundError:
+      description: Requested resource was not found
+    FileStructureError:
+      description: File structure couldn't be parsed correctly, or has an invalid filename
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              code:
+                type: string
+                enum: ['TSV_PARSING_FAILED', 'INVALID_FILE_NAME']
+          examples:
+            TSVParseError:
+              value:
+                msg: 'string'
+                code: 'TSV_PARSING_FAILED'
+            InvalidFileNameError:
+              value:
+                msg: 'string'
+                code: 'INVALID_FILE_NAME'
+
+  schemas:
+    BatchError:
+      type: object
+      properties:
+        message:
+          type: string
+          description: a message describing the error
+        type:
+          type: string
+          description: the type of error
+          enum:
+            - TSV_PARSING_FAILED
+            - INVALID_FILE_NAME
+            - INCORRECT_SECTION
+            - MULTIPLE_TYPED_FILES
+            - UNRECOGNIZED_HEADER
+            - MISSING_REQUIRED_HEADER
+        batchNames:
+          type: array
+          description: list of batch names causing error
+          items:
+            type: string
+    ValidationError:
+      type: object
+      required:
+        - index
+        - type
+        - fieldName
+        - message
+        - info
+      properties:
+        fieldName:
+          type: string
+          description: the field name that the error is related to
+        info:
+          type: object
+          description: contains context information related to the error
+          properties:
+            value:
+              type: string
+              nullable: true
+              description: the faulty value
+            donorSubmitterId:
+              type: string
+              nullable: true
+              description: the donor Id in that row
+          additionalProperties: true
+        index:
+          type: number
+          format: integer
+          description: the 0 based index of the row for this error
+        type:
+          type: string
+          description: the type of error
+          enum:
+            - DELETING_THERAPY
+            - CONFLICTING_TIME_INTERVAL
+            - ID_NOT_REGISTERED
+            - INVALID_PROGRAM_ID
+            - MUTATING_EXISTING_DATA
+            - NEW_DONOR_CONFLICT
+            - NEW_SAMPLE_ATTR_CONFLICT
+            - NEW_SAMPLE_ID_CONFLICT
+            - NEW_SPECIMEN_ATTR_CONFLICT
+            - NEW_SPECIMEN_ID_CONFLICT
+            - NOT_ENOUGH_INFO_TO_VALIDATE
+            - SAMPLE_BELONGS_TO_OTHER_SPECIMEN
+            - SPECIMEN_BELONGS_TO_OTHER_DONOR
+            - RELATED_ENTITY_MISSING_OR_CONFLICTING
+            - FOUND_IDENTICAL_IDS
+            - MISSING_THERAPY_DATA
+            - INVALID_THERAPY_DATA
+            - INCOMPATIBLE_PARENT_TREATMENT_TYPE
+            - TREATMENT_ID_NOT_FOUND
+            - CLINICAL_ENTITY_BELONGS_TO_OTHER_DONOR
+            - MISSING_VARIABLE_REQUIREMENT
+            - FORBIDDEN_PROVIDED_VARIABLE_REQUIREMENT
+            - THERAPY_RXNORM_RXCUI_NOT_FOUND
+            - THERAPY_RXNORM_DRUG_NAME_INVALID
+            - THERAPY_MISSING_RXNORM_FIELDS
+            # dictionary schema errors
+            - MISSING_REQUIRED_FIELD
+            - INVALID_FIELD_VALUE_TYPE
+            - INVALID_BY_REGEX
+            - INVALID_BY_SCRIPT
+            - INVALID_ENUM_VALUE
+            - INVALID_BY_RANGE
+            - UNRECOGNIZED_FIELD
+    RegistrationValidationError: # "extends" ValidationError
+      allOf:
+        - $ref: '#/components/schemas/ValidationError'
+        - properties:
+            info:
+              properties:
+                sampleSubmitterId:
+                  type: string
+                  nullable: true
+                  description: the sample Id in that row
+                specimenSubmitterId:
+                  type: string
+                  nullable: true
+                  description: the specimen Id in that row
+
+    Registration:
+      type: object
+      required:
+        - _id
+        - programId
+        - creator
+        - stats
+        - records
+      properties:
+        _id:
+          type: string
+          description: the id of the registration
+        programId:
+          type: string
+          description: the program short name this registration is for
+        creator:
+          type: string
+          description: first name and last name of the user who created this registration
+        batchName:
+          type: string
+          description: a file that must start with registration and have .tsv extension
+        stats:
+          type: object
+          properties:
+            newDonorIds:
+              $ref: '#/components/schemas/RegistrationStat'
+            newSpecimenIds:
+              $ref: '#/components/schemas/RegistrationStat'
+            newSampleIds:
+              $ref: '#/components/schemas/RegistrationStat'
+            alreadyRegistered:
+              $ref: '#/components/schemas/RegistrationStat'
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/Record'
+
+    Record:
+      required:
+        - program_id
+        - submitter_donor_id
+        - gender
+        - submitter_specimen_id
+        - specimen_tissue_source
+        - tumour_normal_designation
+        - specimen_type
+        - submitter_sample_id
+        - sample_type
+      properties:
+        program_id:
+          type: string
+        submitter_donor_id:
+          type: string
+        gender:
+          type: string
+        submitter_specimen_id:
+          type: string
+        specimen_tissue_source:
+          type: string
+        tumour_normal_designation:
+          type: string
+        specimen_type:
+          type: string
+        submitter_sample_id:
+          type: string
+        sample_type:
+          type: string
+
+    RegistrationStat:
+      type: object
+
+    CreateRegistration:
+      required:
+        - successful
+      type: object
+      properties:
+        registration:
+          $ref: '#/components/schemas/Registration'
+        successful:
+          type: boolean
+          description: whether the file was valid or not
+        errors:
+          type: array
+          description: list of all errors, should be empty on success
+          items:
+            $ref: '#/components/schemas/RegistrationValidationError'
+        batchErrors:
+          type: array
+          description: list of all batch related errors, should be empty on success
+          items:
+            $ref: '#/components/schemas/BatchError'

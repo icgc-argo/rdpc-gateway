@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 The Ontario Institute for Cancer Research. All rights reserved
+ * Copyright (c) 2023 The Ontario Institute for Cancer Research. All rights reserved
  *
  * This program and the accompanying materials are made available under the terms of the GNU Affero General Public License v3.0.
  * You should have received a copy of the GNU Affero General Public License along with
@@ -23,6 +23,9 @@ import * as dotenv from 'dotenv';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import fetch from 'node-fetch';
 
+import apiDocRouter from './routes/api-docs';
+import clinicalProxyRoute from './routes/clinical-proxy';
+
 dotenv.config();
 
 const app = express();
@@ -31,6 +34,7 @@ const port = process.env.PORT || 4000;
 const GRAPHQ_GQL_PATH = '/graphql';
 const WORKFLOW_API_URL = process.env.WORKFLOW_API_URL;
 const SONG_SEARCH_URL = process.env.SONG_SEARCH_URL;
+const CLINICAL_GQL_URL = process.env.CLINICAL_GQL_URL;
 
 // *** Setup Apollo Federation ***
 const gateway = new ApolloGateway({
@@ -42,6 +46,10 @@ const gateway = new ApolloGateway({
     {
       name: 'song-search',
       url: `${SONG_SEARCH_URL}${GRAPHQ_GQL_PATH}`,
+    },
+    {
+      name: 'argo-clinical',
+      url: `${CLINICAL_GQL_URL}${GRAPHQ_GQL_PATH}`,
     },
   ],
   buildService({ name, url }) {
@@ -65,15 +73,18 @@ const server = new ApolloServer({
 
 // *** Setup Workflow-API proxy ***
 // Workflow-Api graphql is accessed via Apollo, so reject here
+
 app.use('/workflow-api/graphql', (_, res) => res.status(404).send());
 app.use('/workflow-api/v2/api-docs', async (req, res) => {
   // api-docs has no knowledge of proxy so it points to actual service which is misleading
   // since we are proxying through gateway, replace with gateway's host and basePath
+
   const apiDoc = await fetch(WORKFLOW_API_URL + '/v2/api-docs').then((res) => res.json());
   apiDoc.host = `${req.hostname}:${port}`;
   apiDoc.basePath = '/workflow-api';
   res.send(apiDoc);
 });
+
 app.use(
   '/workflow-api',
   createProxyMiddleware({
@@ -91,8 +102,14 @@ app.use('/status', (_, res) => {
   });
 });
 
+// Routers
+app.use('/clinical', clinicalProxyRoute);
+
+app.use('/api-docs', apiDocRouter());
+
 server.applyMiddleware({ app });
 
-app.listen(port, () =>
-  console.log(`Server ready at http://localhost:${port}${server.graphqlPath}`),
-);
+app.listen(port, () => {
+  console.log(`Server ready at http://localhost:${port}${server.graphqlPath}`);
+  console.log(`🛩  Rest API doc available at http://localhost:${port}/api-docs`);
+});
