@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 The Ontario Institute for Cancer Research. All rights reserved
+ * Copyright (c) 2023 The Ontario Institute for Cancer Research. All rights reserved
  *
  * This program and the accompanying materials are made available under the terms of
  * the GNU Affero General Public License v3.0. You should have received a copy of the
@@ -80,6 +80,19 @@ router.use(
       // for specific templates 'templateName'.tsv or 'templateName' will get the tsv from clinical
       const name = req.params.template.replace(/.tsv$/, '');
       return urlJoin('/dictionary/template/', name);
+    },
+    onError: handleError,
+    changeOrigin: true,
+  }),
+);
+
+router.use(
+  '/submission/program/:programId/registration',
+  createProxyMiddleware({
+    target: CLINICAL_API_URL,
+    pathRewrite: (pathName: string, req: Request) => {
+      const programId = req.params.programId;
+      return urlJoin('/submission/program/', programId, '/registration');
     },
     onError: handleError,
     changeOrigin: true,
