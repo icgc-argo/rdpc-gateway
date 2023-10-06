@@ -2,6 +2,8 @@ openapi: 3.0.0
 info:
   title: RDPC Gateway
   version: 1.0.0
+security:
+  - bearerAuth: ['PROGRAMDATA-${programId}.WRITE', 'CLINICALSERVICE.WRITE']
 tags:
   - name: Clinical Proxies
     description: Proxies file downloads for Clinical
@@ -103,7 +105,7 @@ paths:
         '500':
           description: Internal server error
 
-  '/submission/program/{programId}/registration':
+  '/clinical/submission/program/{programId}/registration':
     parameters:
       - $ref: '#/components/parameters/PathProgramId'
     post:
