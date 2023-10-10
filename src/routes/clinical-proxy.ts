@@ -37,6 +37,17 @@ const handleError = (err: Error, req: Request, res: Response) => {
   return res.status(500).send('Internal Server Error');
 };
 
+// This generic router will be called for all requests coming from /clinical/api/...
+router.use(
+  '/api',
+  createProxyMiddleware({
+    target: CLINICAL_API_URL,
+    pathRewrite: (path: string, _) => path.replace('/clinical/api', ''),
+    onError: handleError,
+    changeOrigin: true,
+  }),
+);
+
 router.use(
   '/program/:programId/all-clinical-data',
   createProxyMiddleware({
