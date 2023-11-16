@@ -17,14 +17,15 @@
  */
 
 import { ApolloServer } from 'apollo-server-express';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { ApolloGateway, RemoteGraphQLDataSource } from '@apollo/gateway';
 import express, { Request } from 'express';
 import * as dotenv from 'dotenv';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import fetch from 'node-fetch';
 
 import apiDocRouter from './routes/api-docs';
 import clinicalProxyRoute from './routes/clinical-proxy';
+import programProxyRoute from './routes/program-proxy';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ const GRAPHQ_GQL_PATH = '/graphql';
 const WORKFLOW_API_URL = process.env.WORKFLOW_API_URL;
 const SONG_SEARCH_URL = process.env.SONG_SEARCH_URL;
 const CLINICAL_GQL_URL = process.env.CLINICAL_GQL_URL;
+const PROGRAM_SERVICE_HTTP_ROOT = process.env.PROGRAM_SERVICE_HTTP_ROOT;
 
 // *** Setup Apollo Federation ***
 const gateway = new ApolloGateway({
@@ -50,6 +52,10 @@ const gateway = new ApolloGateway({
     {
       name: 'argo-clinical',
       url: `${CLINICAL_GQL_URL}${GRAPHQ_GQL_PATH}`,
+    },
+    {
+      name: 'programs',
+      url: `${PROGRAM_SERVICE_HTTP_ROOT}${GRAPHQ_GQL_PATH}`,
     },
   ],
   buildService({ name, url }) {
@@ -104,6 +110,8 @@ app.use('/status', (_, res) => {
 
 // Routers
 app.use('/clinical', clinicalProxyRoute);
+
+app.use('/programs', programProxyRoute);
 
 app.use('/api-docs', apiDocRouter());
 
