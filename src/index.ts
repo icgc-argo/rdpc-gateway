@@ -20,6 +20,7 @@ import { ApolloServer } from 'apollo-server-express';
 import { ApolloGateway, RemoteGraphQLDataSource } from '@apollo/gateway';
 import express, { Request } from 'express';
 import * as dotenv from 'dotenv';
+import cors from 'cors';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import fetch from 'node-fetch';
 
@@ -101,6 +102,12 @@ app.use('/status', (_, res) => {
     status: 'RUNNING',
   });
 });
+
+// Cors Config
+const corsOptions = {
+  exposedHeaders: ['content-disposition'],
+};
+app.use(cors(corsOptions));
 
 // Routers
 app.use('/clinical', clinicalProxyRoute);
